@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package xyz.toranova;
+package com.github.toranova;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -25,6 +25,7 @@ import org.apache.camel.Processor;
 
 public class HashCryptField implements Processor {
 
+    AWSKMSHashcryptor mHC;
     String field;
     String value;
 
