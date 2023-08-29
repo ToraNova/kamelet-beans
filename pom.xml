@@ -5,9 +5,11 @@
 <modelVersion>4.0.0</modelVersion>
 
 <!-- pelase do not change the position of the version tag-->
-<version>0.1</version>
+<version>0.2-SNAPSHOT</version>
 <groupId>xyz.toranova</groupId>
 <artifactId>kamelet-beans</artifactId>
+<packaging>jar</packaging>
+<url>https://jitpack.io/#toranova/kamelet-beans/0.2</url>
 
 <properties>
     <maven.compiler.source>17</maven.compiler.source>
@@ -121,6 +123,20 @@
                 <source>1.8</source>
                 <target>1.8</target>
             </configuration>
+        </plugin>
+
+        <plugin>  <!-- Create sources.jar -->
+            <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
         </plugin>
 
         <plugin>
