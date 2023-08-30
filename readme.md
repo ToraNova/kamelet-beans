@@ -4,6 +4,7 @@
 
 ## References
 
+- https://camel.apache.org/manual/property-binding.html
 - https://camel.apache.org/camel-k/2.0.x/configuration/dependencies.html
 - https://camel.apache.org/camel-k/2.0.x/installation/advanced/maven.html
 - https://jitpack.io/#toranova/kamelet-beans/master-SNAPSHOT
