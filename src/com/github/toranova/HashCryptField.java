@@ -16,6 +16,9 @@
  */
 package com.github.toranova;
 
+import java.util.Map;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -25,53 +28,55 @@ import org.apache.camel.Processor;
 
 public class HashCryptField implements Processor {
 
-    AWSKMSHashcryptor mHC;
-    String field;
-    String value;
+    private AWSKMSHashcryptor m = null;
+    private String[] mFields = null;
 
-    /**
-     * Default constructor.
-     */
-    public HashCryptField() {
+    public HashCryptField(){
     }
 
-    /**
-     * Constructor using fields.
-     * @param field the field name to insert.
-     * @param value the value of the new field.
-     */
-    public HashCryptField(String field, String value) {
-        this.field = field;
-        this.value = value;
+    public HashCryptField(String fields, String accessKey, String secretKey, String keyId, String hashAlgo, String hashSalt) throws Exception {
+        mFields = fields.split(" *, *");
+        m = new AWSKMSHashcryptor(accessKey, secretKey, keyId, hashAlgo, hashSalt);
     }
 
-    public void process(Exchange ex) throws InvalidPayloadException {
-        JsonNode body = ex.getMessage().getBody(JsonNode.class);
+    public HashCryptField(String fields, String keyId, String hashAlgo, String hashSalt) throws Exception {
+        mFields = fields.split(" *, *");
+        m = new AWSKMSHashcryptor(keyId, hashAlgo, hashSalt);
+    }
 
-        if (body == null) {
+    public String testDecryptUTF8(String testcipher) throws Exception {
+        return m.doDecryptUTF8(testcipher);
+    }
+
+    public void process(Exchange ex) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode jsonNodeBody = ex.getMessage().getBody(JsonNode.class);
+
+        if (jsonNodeBody == null) {
             throw new InvalidPayloadException(ex, JsonNode.class);
         }
 
-        switch (body.getNodeType()) {
-            case ARRAY:
-                ((ArrayNode) body).add(value);
-                break;
-            case OBJECT:
-                ((ObjectNode) body).put(field, value);
-                break;
-            default:
-                ((ObjectNode) body).put(field, value);
-                break;
+        Map<Object, Object> body = mapper.convertValue(jsonNodeBody, new TypeReference<Map<Object, Object>>(){});
+
+        for (String s : mFields) {
+            // for every field
+            Object v = body.get(s);
+            if (v instanceof java.lang.String) {
+                String e = m.doEncryptUTF8((String) v);
+
+                // add encrypted field
+                body.put(String.format("%s_enc", s), e);
+
+                String h = m.doHash((String) v);
+                if (h instanceof java.lang.String) {
+                    // overwrite value with hash
+                    body.put(s, h);
+                }
+            }
         }
 
+        // add the decryption context
+        body.put("aws_enc_ctx", m.getDecryptionContext());
         ex.getMessage().setBody(body);
-    }
-
-    public void setField(String field) {
-        this.field = field;
-    }
-
-    public void setValue(String value) {
-        this.value = value;
     }
 }
