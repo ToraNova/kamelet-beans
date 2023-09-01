@@ -63,13 +63,15 @@ public class HashCryptField implements Processor {
         //JsonNode jsonNodeBody = ex.getMessage().getBody(JsonNode.class);
         Message msg = ex.getMessage();
         if (msg == null) {
-            throw new InvalidPayloadException(ex, JsonNode.class);
+            return;
+            //throw new InvalidPayloadException(ex, JsonNode.class);
         }
 
         JsonNode jsonb = msg.getBody(JsonNode.class);
 
         if (jsonb == null) {
-            throw new InvalidPayloadException(ex, JsonNode.class);
+            return;
+            //throw new InvalidPayloadException(ex, JsonNode.class);
         }
 
         ObjectNode body = ((ObjectNode) jsonb);
@@ -123,6 +125,6 @@ public class HashCryptField implements Processor {
         ObjectMapper mapper = new ObjectMapper();
         Map<Object, Object> out = mapper.convertValue(body, new TypeReference<Map<Object, Object>>(){});
 
-        ex.getMessage().setBody(out);
+        msg.setBody(out);
     }
 }
