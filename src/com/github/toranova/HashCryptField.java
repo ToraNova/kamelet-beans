@@ -61,7 +61,7 @@ public class HashCryptField implements Processor {
         for (String s : mFields) {
             // for every field
             Object v = body.get(s);
-            if (v instanceof java.lang.String) {
+            if (v instanceof java.lang.String && v != null) {
                 String e = m.doEncryptUTF8((String) v);
 
                 // add encrypted field
