@@ -57,7 +57,7 @@ public final class HashCryptFieldTest {
 
         exchange.getMessage().setBody(mapper.readTree(baseJson));
 
-        processor = new HashCryptField("name, nric", "59d9d135-21ee-48d0-9322-d7243983f246", "SHA-256", "salt123");
+        processor = new HashCryptField("name, nric", "59d9d135-21ee-48d0-9322-d7243983f246", "SHA-256", "salt123", 5);
         processor.process(exchange);
 
         System.out.println(exchange.getMessage().getBody(String.class));
@@ -69,5 +69,42 @@ public final class HashCryptFieldTest {
         assertEquals(recover, "1234567891");
         recover = processor.testDecryptUTF8(((ObjectNode) res).get("name_enc").textValue());
         assertEquals(recover, "Sum Ting Wong");
+    }
+
+    @Test
+    public void shouldRotateKeys() throws Exception {
+        Exchange exchange;
+        JsonNode res;
+        String keyCtx1, keyCtx2, keyCtx3;
+
+        exchange = new DefaultExchange(camelContext);
+        exchange.getMessage().setBody(mapper.readTree(baseJson));
+
+        processor = new HashCryptField("name, nric", "59d9d135-21ee-48d0-9322-d7243983f246", "SHA-256", "salt123", 3);
+        processor.process(exchange);
+        res = exchange.getMessage().getBody(JsonNode.class);
+        keyCtx1 = ((ObjectNode) res).get("aws_enc_ctx").textValue();
+
+        exchange = new DefaultExchange(camelContext);
+        exchange.getMessage().setBody(mapper.readTree(baseJson));
+        processor.process(exchange);
+
+        exchange = new DefaultExchange(camelContext);
+        exchange.getMessage().setBody(mapper.readTree(baseJson));
+        processor.process(exchange);
+        res = exchange.getMessage().getBody(JsonNode.class);
+        keyCtx2 = ((ObjectNode) res).get("aws_enc_ctx").textValue();
+
+        // third message still uses old keyCtx
+        assertEquals(keyCtx1, keyCtx2);
+
+        exchange = new DefaultExchange(camelContext);
+        exchange.getMessage().setBody(mapper.readTree(baseJson));
+        processor.process(exchange);
+        res = exchange.getMessage().getBody(JsonNode.class);
+        keyCtx3 = ((ObjectNode) res).get("aws_enc_ctx").textValue();
+
+        // fourth message uses a different key ctx
+        assertNotEquals(keyCtx1, keyCtx3);
     }
 }

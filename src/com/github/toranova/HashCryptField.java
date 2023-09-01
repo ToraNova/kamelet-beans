@@ -34,14 +34,14 @@ public class HashCryptField implements Processor {
     public HashCryptField(){
     }
 
-    public HashCryptField(String fields, String accessKey, String secretKey, String keyId, String hashAlgo, String hashSalt) throws Exception {
+    public HashCryptField(String fields, String accessKey, String secretKey, String keyId, String hashAlgo, String hashSalt, int rotationPeriod) throws Exception {
         mFields = fields.split(" *, *");
-        m = new AWSKMSHashcryptor(accessKey, secretKey, keyId, hashAlgo, hashSalt);
+        m = new AWSKMSHashcryptor(accessKey, secretKey, keyId, hashAlgo, hashSalt, rotationPeriod);
     }
 
-    public HashCryptField(String fields, String keyId, String hashAlgo, String hashSalt) throws Exception {
+    public HashCryptField(String fields, String keyId, String hashAlgo, String hashSalt, int rotationPeriod) throws Exception {
         mFields = fields.split(" *, *");
-        m = new AWSKMSHashcryptor(keyId, hashAlgo, hashSalt);
+        m = new AWSKMSHashcryptor(keyId, hashAlgo, hashSalt, rotationPeriod);
     }
 
     public String testDecryptUTF8(String testcipher) throws Exception {

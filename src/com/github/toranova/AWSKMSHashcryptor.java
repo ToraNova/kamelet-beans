@@ -31,32 +31,39 @@ import org.bouncycastle.crypto.params.ParametersWithIV;
 
 public class AWSKMSHashcryptor {
 
+    private String mAwsAccessKey;
+    private String mAwsSecretKey;
     private byte[] mHashSalt;
     private MessageDigest mHashAlgo;
     private String mKeyId;
     private KeyParameter mKeyParam;
     private String mKeyCtB64;
     private static int mNonceLen = 16;
+    private int mRotationCount = 0;
+    private int mRotationPeriod = 1000000;
 
     public AWSKMSHashcryptor(byte[] hardCodedKey) throws NoSuchAlgorithmException {
         // FOR DEBUGGING ONLY, DO NOT USE!
         mKeyParam = new KeyParameter(hardCodedKey);
         mKeyCtB64 = Base64.getEncoder().encodeToString(hardCodedKey);
         mKeyId = "00000000-0000-0000-0000-000000000000";
+        mRotationPeriod = 5;
         initHashDigest("SHA-256", "salt123");
     }
 
     public AWSKMSHashcryptor(
             String kmsKeyId,
             String hashAlgo,
-            String hashSalt
+            String hashSalt,
+            int rotationPeriod
     ) throws NoSuchAlgorithmException {
         // Initialize the KMS client
-        KmsClient kmsClient = KmsClient.builder()
-            .region(Region.AP_SOUTHEAST_1)
-            .build();
+        mRotationPeriod = rotationPeriod;
+        mKeyId = kmsKeyId;
+        mAwsSecretKey = null;
+        mAwsAccessKey = null;
 
-        initKeys(kmsClient, kmsKeyId);
+        initKeys();
         initHashDigest(hashAlgo, hashSalt);
     }
 
@@ -65,28 +72,37 @@ public class AWSKMSHashcryptor {
             String awsKeySecret,
             String kmsKeyId,
             String hashAlgo,
-            String hashSalt
+            String hashSalt,
+            int rotationPeriod
     ) throws NoSuchAlgorithmException {
-        AwsBasicCredentials creds = AwsBasicCredentials.create(
-                awsKeyId, awsKeySecret
-        );
+        mRotationPeriod = rotationPeriod;
+        mKeyId = kmsKeyId;
+        mAwsAccessKey = awsKeyId;
+        mAwsSecretKey = awsKeySecret;
 
-        // Initialize the KMS client
-        KmsClient kmsClient = KmsClient.builder()
-            .credentialsProvider(StaticCredentialsProvider.create(creds))
-            .region(Region.AP_SOUTHEAST_1)
-            .build();
-
-        initKeys(kmsClient, kmsKeyId);
+        initKeys();
         initHashDigest(hashAlgo, hashSalt);
     }
 
-    private void initKeys(
-            KmsClient kmsClient,
-            String kmsKeyId
-    ) throws NoSuchAlgorithmException {
+    private void initKeys() throws NoSuchAlgorithmException {
 
-        mKeyId = kmsKeyId;
+        KmsClient client;
+
+        if (mAwsAccessKey != null && mAwsSecretKey != null) {
+            AwsBasicCredentials creds = AwsBasicCredentials.create(
+                    mAwsAccessKey, mAwsSecretKey
+            );
+
+            // Initialize the KMS client
+            client = KmsClient.builder()
+                .credentialsProvider(StaticCredentialsProvider.create(creds))
+                .region(Region.AP_SOUTHEAST_1)
+                .build();
+        } else {
+            client = KmsClient.builder()
+                .region(Region.AP_SOUTHEAST_1)
+                .build();
+        }
 
         // Define the GenerateDataKey request
         GenerateDataKeyRequest request = GenerateDataKeyRequest.builder()
@@ -95,25 +111,39 @@ public class AWSKMSHashcryptor {
             .build();
 
         // Call kms:GenerateDataKey
-        GenerateDataKeyResponse response = kmsClient.generateDataKey(request);
+        GenerateDataKeyResponse response = client.generateDataKey(request);
         byte[] keyPt = response.plaintext().asByteArray();
         mKeyParam = new KeyParameter(keyPt);
 
         byte[] keyCt = response.ciphertextBlob().asByteArray();
         mKeyCtB64 = Base64.getEncoder().encodeToString(keyCt);
 
-        kmsClient.close();
+        mRotationCount = 0;
+
+        client.close();
     }
 
     public String getDecryptionContext(){
         return String.format("%s:%s", mKeyCtB64, mKeyId);
     }
 
-    public String doEncryptUTF8(String plaintext) throws java.io.UnsupportedEncodingException, InvalidCipherTextException {
+    public String doEncryptUTF8(
+            String plaintext
+    ) throws
+        java.io.UnsupportedEncodingException,
+        InvalidCipherTextException,
+        NoSuchAlgorithmException
+    {
         return doEncrypt(plaintext.getBytes("UTF-8"));
     }
 
-    public String doEncrypt(byte[] plaintext) throws InvalidCipherTextException {
+    public String doEncrypt(byte[] plaintext) throws InvalidCipherTextException, NoSuchAlgorithmException {
+
+        // in and out
+        if (mRotationCount >= (int) (mRotationPeriod * 2)) {
+            // get new keys
+            initKeys();
+        }
 
         byte[] nonce = new byte[mNonceLen];
         SecureRandom sr = new SecureRandom();
@@ -124,6 +154,8 @@ public class AWSKMSHashcryptor {
         cip.processBytes(plaintext, 0, plaintext.length, null, 0);
         cip.doFinal(buf, mNonceLen);
         System.arraycopy(nonce, 0, buf, 0, mNonceLen);
+
+        mRotationCount += 1; // in and out
         return Base64.getEncoder().encodeToString(buf);
     }
 
