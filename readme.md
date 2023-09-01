@@ -10,3 +10,7 @@
 - https://jitpack.io/#toranova/kamelet-beans/master-SNAPSHOT
 - https://github.com/apache/camel-kamelets/tree/main/kamelets
 - https://camel.apache.org/components/4.0.x/eips/unmarshal-eip.html
+
+## Troubleshooting
+
+1. cannot create bean - please ensure that the camel-k version is correct (check pom.xml)
