@@ -43,7 +43,7 @@ public final class HashCryptFieldTest {
 
     private final String baseJson = "{" +
                 "\"name\":\"Sum Ting Wong\"," +
-                "\"nric\":\"1234567891\"" +
+                "\"nric\":\"1234567891 \"" +
             "}";
 
     @Before

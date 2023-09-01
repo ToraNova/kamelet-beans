@@ -35,11 +35,13 @@ public class HashCryptField implements Processor {
     }
 
     public HashCryptField(String fields, String accessKey, String secretKey, String keyId, String hashAlgo, String hashSalt, int rotationPeriod) throws Exception {
+        //System.out.printf("FIELDS: %s\n", fields);
         mFields = fields.split(" *, *");
         m = new AWSKMSHashcryptor(accessKey, secretKey, keyId, hashAlgo, hashSalt, rotationPeriod);
     }
 
     public HashCryptField(String fields, String keyId, String hashAlgo, String hashSalt, int rotationPeriod) throws Exception {
+        //System.out.printf("FIELDS: %s\n", fields);
         mFields = fields.split(" *, *");
         m = new AWSKMSHashcryptor(keyId, hashAlgo, hashSalt, rotationPeriod);
     }
@@ -59,15 +61,21 @@ public class HashCryptField implements Processor {
         Map<Object, Object> body = mapper.convertValue(jsonNodeBody, new TypeReference<Map<Object, Object>>(){});
 
         for (String s : mFields) {
+            //System.out.printf("PROCESSING: %s\n", s);
             // for every field
             Object v = body.get(s);
-            if (v instanceof java.lang.String && v != null) {
-                String e = m.doEncryptUTF8((String) v);
+            if (v == null) {
+                continue;
+            }
+
+            if (v instanceof java.lang.String) {
+                String _v = ((String) v).trim(); // trim whitespace
+                String e = m.doEncryptUTF8(_v);
 
                 // add encrypted field
                 body.put(String.format("%s_enc", s), e);
 
-                String h = m.doHash((String) v);
+                String h = m.doHash(_v);
                 if (h instanceof java.lang.String) {
                     // overwrite value with hash
                     body.put(s, h);
