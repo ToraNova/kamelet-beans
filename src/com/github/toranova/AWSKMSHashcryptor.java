@@ -183,7 +183,7 @@ public class AWSKMSHashcryptor {
     public String doEncrypt(byte[] plaintext) throws InvalidCipherTextException, NoSuchAlgorithmException {
 
         // in and out
-        if (mRotationCount >= (int) (mRotationPeriod * 2)) {
+        if (mRotationCount >= mRotationPeriod) {
             // get new keys
             initKeys();
         }

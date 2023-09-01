@@ -62,13 +62,14 @@ public final class HashCryptFieldTest {
 
         System.out.println(exchange.getMessage().getBody(String.class));
         JsonNode res = exchange.getMessage().getBody(JsonNode.class);
-        assertEquals( ((ObjectNode) res).get("nric").textValue(), "405d29f0dcea8f1c01e45c8cb5d431ef8308697b115f9a1d061244c27b5fdc1a");
-        assertEquals( ((ObjectNode) res).get("name").textValue(), "24a5827a551ee3ef32daaa6cb806209204d552fed00f5ee27ea40110ee272a1b");
+        assertEquals("405d29f0dcea8f1c01e45c8cb5d431ef8308697b115f9a1d061244c27b5fdc1a",
+                ((ObjectNode) res).get("nric").textValue());
+        assertEquals("24a5827a551ee3ef32daaa6cb806209204d552fed00f5ee27ea40110ee272a1b",((ObjectNode) res).get("name").textValue());
 
         String recover = processor.testDecryptUTF8(((ObjectNode) res).get("nric_enc").textValue());
-        assertEquals(recover, "1234567891");
+        assertEquals("1234567891", recover);
         recover = processor.testDecryptUTF8(((ObjectNode) res).get("name_enc").textValue());
-        assertEquals(recover, "Sum Ting Wong");
+        assertEquals("Sum Ting Wong", recover);
     }
 
     @Test

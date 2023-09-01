@@ -38,19 +38,19 @@ public class HashCryptField implements Processor {
     public HashCryptField(String fields, String accessKey, String secretKey, String keyId, String hashAlgo, String hashSalt, int rotationPeriod, String proxy) throws Exception {
         //System.out.printf("FIELDS: %s\n", fields);
         mFields = fields.split(" *, *");
-        m = new AWSKMSHashcryptor(accessKey, secretKey, keyId, hashAlgo, hashSalt, rotationPeriod, proxy);
+        m = new AWSKMSHashcryptor(accessKey, secretKey, keyId, hashAlgo, hashSalt, (int)(rotationPeriod * 2), proxy);
     }
 
     public HashCryptField(String fields, String accessKey, String secretKey, String keyId, String hashAlgo, String hashSalt, int rotationPeriod) throws Exception {
         //System.out.printf("FIELDS: %s\n", fields);
         mFields = fields.split(" *, *");
-        m = new AWSKMSHashcryptor(accessKey, secretKey, keyId, hashAlgo, hashSalt, rotationPeriod);
+        m = new AWSKMSHashcryptor(accessKey, secretKey, keyId, hashAlgo, hashSalt, (int)(rotationPeriod * 2));
     }
 
     public HashCryptField(String fields, String keyId, String hashAlgo, String hashSalt, int rotationPeriod) throws Exception {
         //System.out.printf("FIELDS: %s\n", fields);
         mFields = fields.split(" *, *");
-        m = new AWSKMSHashcryptor(keyId, hashAlgo, hashSalt, rotationPeriod);
+        m = new AWSKMSHashcryptor(keyId, hashAlgo, hashSalt, (int)(rotationPeriod * 2));
     }
 
     public String testDecryptUTF8(String testcipher) throws Exception {
@@ -58,50 +58,43 @@ public class HashCryptField implements Processor {
     }
 
     public void process(Exchange ex) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode jsonNodeBody = ex.getMessage().getBody(JsonNode.class);
+        //ObjectMapper mapper = new ObjectMapper();
+        //JsonNode jsonNodeBody = ex.getMessage().getBody(JsonNode.class);
 
-        if (jsonNodeBody == null) {
+        JsonNode jsonb = ex.getMessage().getBody(JsonNode.class);
+
+        if (jsonb == null) {
             throw new InvalidPayloadException(ex, JsonNode.class);
         }
 
-        Map<Object, Object> body = mapper.convertValue(jsonNodeBody, new TypeReference<Map<Object, Object>>(){});
+        ObjectNode body = ((ObjectNode) jsonb);
 
         for (String s : mFields) {
             //System.out.printf("PROCESSING: %s\n", s);
             // for every field
-            Object v = body.get(s);
+            String v = body.get(s).asText();
             if (v == null) {
                 continue;
             }
 
-            if (v instanceof java.lang.String) {
-                String _v = ((String) v).trim(); // trim whitespace
+            v = v.trim(); // trim whitespace
 
-                if (_v.isEmpty()) {
-                    // do nothing for empty fields
-                    body.put(String.format("%s_enc", s), "");
-                    body.put(s, "");
-                    continue;
-                }
+            if (v.isEmpty()) {
+                // do nothing for empty fields
+                body.put(String.format("%s_enc", s), "");
+                body.put(s, "");
+                continue;
+            }
 
-                byte[] vbuf = _v.getBytes("UTF-8");
-                if (vbuf == null || vbuf.length == 0) {
-                    // abort, put empty
-                    body.put(String.format("%s_enc", s), "");
-                    body.put(s, "");
-                    continue;
-                }
-                String e = m.doEncrypt(vbuf);
+            String e = m.doEncryptUTF8(v);
 
-                // add encrypted field
-                body.put(String.format("%s_enc", s), e);
+            // add encrypted field
+            body.put(String.format("%s_enc", s), e);
 
-                String h = m.doHash(_v);
-                if (h instanceof java.lang.String) {
-                    // overwrite value with hash
-                    body.put(s, h);
-                }
+            String h = m.doHash(v);
+            if (h instanceof java.lang.String) {
+                // overwrite value with hash
+                body.put(s, h);
             }
         }
 
