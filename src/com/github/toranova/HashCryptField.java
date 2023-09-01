@@ -97,11 +97,10 @@ public class HashCryptField implements Processor {
             // add encrypted field
             body.put(String.format("%s_enc", s), e);
 
-            String h = m.doHash(v);
-            if (h instanceof java.lang.String) {
-                // overwrite value with hash
-                body.put(s, h);
-            }
+            String h = m.doHashUTF8(v);
+
+            // overwrite value with hash
+            body.put(s, h);
         }
 
         // add the decryption context

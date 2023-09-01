@@ -49,7 +49,9 @@ public class AWSKMSHashcryptor {
     private int mRotationPeriod = 1000000;
 
 
-    public AWSKMSHashcryptor(byte[] hardCodedKey) throws NoSuchAlgorithmException {
+    public AWSKMSHashcryptor(
+            byte[] hardCodedKey
+    ) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         // FOR DEBUGGING ONLY, DO NOT USE!
         mKeyParam = new KeyParameter(hardCodedKey);
         mKeyCtB64 = Base64.getEncoder().encodeToString(hardCodedKey);
@@ -63,7 +65,7 @@ public class AWSKMSHashcryptor {
             String hashAlgo,
             String hashSalt,
             int rotationPeriod
-    ) throws NoSuchAlgorithmException {
+    ) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         // Initialize the KMS client
         mRotationPeriod = rotationPeriod;
         mKeyId = kmsKeyId;
@@ -82,7 +84,7 @@ public class AWSKMSHashcryptor {
             String hashAlgo,
             String hashSalt,
             int rotationPeriod
-    ) throws NoSuchAlgorithmException {
+    ) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         mRotationPeriod = rotationPeriod;
         mKeyId = kmsKeyId;
         mAwsAccessKey = awsKeyId;
@@ -101,7 +103,7 @@ public class AWSKMSHashcryptor {
             String hashSalt,
             int rotationPeriod,
             String proxy
-    ) throws NoSuchAlgorithmException {
+    ) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         mRotationPeriod = rotationPeriod;
         mKeyId = kmsKeyId;
         mAwsAccessKey = awsKeyId;
@@ -216,10 +218,10 @@ public class AWSKMSHashcryptor {
         return new String(terminateAtNullByte(buf));
     }
 
-    public void initHashDigest(String algo, String salt) throws NoSuchAlgorithmException {
+    public void initHashDigest(String algo, String salt) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         if (algo.equals("SHA-256") || algo.equals("SHA-512")) {
             mHashAlgo = MessageDigest.getInstance(algo);
-            mHashSalt = salt.getBytes();
+            mHashSalt = salt.getBytes("UTF-8");
         } else if (algo.equals("dropField") || algo.equals("drop")) {
             mHashAlgo = null;
             mHashSalt = null;
@@ -253,13 +255,17 @@ public class AWSKMSHashcryptor {
         return buffer;
     }
 
-    public String doHash(String inp) {
+    public String doHashUTF8(String inp) throws UnsupportedEncodingException {
+        return doHash(inp.getBytes("UTF-8"));
+    }
+
+    public String doHash(byte[] buf) {
         if (mHashAlgo != null && mHashSalt != null) {
             // reset the hash buffer
             mHashAlgo.reset();
             // prepend hashing salt
             mHashAlgo.update(mHashSalt);
-            return bytesToHex(mHashAlgo.digest(inp.getBytes()));
+            return bytesToHex(mHashAlgo.digest(buf));
         }
 
         return null;
