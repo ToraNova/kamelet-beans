@@ -13,4 +13,7 @@
 
 ## Troubleshooting
 
-1. cannot create bean - please ensure that the camel-k version is correct (check pom.xml)
+1. cannot create bean - please ensure that the camel-k version is correct (check pom.xml), or that the constructor can run. reasons for why the constructor may fail:
+
+- invalid aws key / key-id combo
+- cannot reach aws (proxy error)

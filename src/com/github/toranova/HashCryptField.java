@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.camel.Message;
 import org.apache.camel.Exchange;
 import org.apache.camel.InvalidPayloadException;
 import org.apache.camel.Processor;
@@ -60,8 +61,12 @@ public class HashCryptField implements Processor {
     public void process(Exchange ex) throws Exception {
         //ObjectMapper mapper = new ObjectMapper();
         //JsonNode jsonNodeBody = ex.getMessage().getBody(JsonNode.class);
+        Message msg = ex.getMessage();
+        if (msg == null) {
+            throw new InvalidPayloadException(ex, JsonNode.class);
+        }
 
-        JsonNode jsonb = ex.getMessage().getBody(JsonNode.class);
+        JsonNode jsonb = msg.getBody(JsonNode.class);
 
         if (jsonb == null) {
             throw new InvalidPayloadException(ex, JsonNode.class);
@@ -72,7 +77,12 @@ public class HashCryptField implements Processor {
         for (String s : mFields) {
             //System.out.printf("PROCESSING: %s\n", s);
             // for every field
-            String v = body.get(s).asText();
+            JsonNode f = body.get(s);
+            if (f == null) {
+                continue;
+            }
+
+            String v = f.asText();
             if (v == null) {
                 continue;
             }
