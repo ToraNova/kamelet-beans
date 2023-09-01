@@ -76,6 +76,13 @@ public class HashCryptField implements Processor {
 
             if (v instanceof java.lang.String) {
                 String _v = ((String) v).trim(); // trim whitespace
+
+                if (_v.isEmpty()) {
+                    // do nothing for empty fields
+                    body.put(String.format("%s_enc", s), "");
+                    body.put(s, "");
+                    continue;
+                }
                 String e = m.doEncryptUTF8(_v);
 
                 // add encrypted field
