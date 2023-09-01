@@ -110,6 +110,10 @@ public class HashCryptField implements Processor {
 
         // add the decryption context
         body.put("aws_enc_ctx", m.getDecryptionContext());
-        ex.getMessage().setBody(body);
+
+        ObjectMapper mapper = new ObjectMapper();
+        Map<Object, Object> out = mapper.convertValue(body, new TypeReference<Map<Object, Object>>(){});
+
+        ex.getMessage().setBody(out);
     }
 }
