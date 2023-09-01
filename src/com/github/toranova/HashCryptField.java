@@ -62,16 +62,10 @@ public class HashCryptField implements Processor {
         //ObjectMapper mapper = new ObjectMapper();
         //JsonNode jsonNodeBody = ex.getMessage().getBody(JsonNode.class);
         Message msg = ex.getMessage();
-        if (msg == null) {
-            return;
-            //throw new InvalidPayloadException(ex, JsonNode.class);
-        }
-
         JsonNode jsonb = msg.getBody(JsonNode.class);
 
         if (jsonb == null) {
-            return;
-            //throw new InvalidPayloadException(ex, JsonNode.class);
+            throw new InvalidPayloadException(ex, JsonNode.class);
         }
 
         ObjectNode body = ((ObjectNode) jsonb);
@@ -98,16 +92,7 @@ public class HashCryptField implements Processor {
                 continue;
             }
 
-            byte[] vbuf = v.getBytes("UTF-8");
-
-            if (vbuf == null) {
-                // do nothing for empty fields
-                body.put(String.format("%s_enc", s), "");
-                body.put(s, "");
-                continue;
-            }
-
-            String e = m.doEncrypt(vbuf);
+            String e = m.doEncryptUTF8(v);
 
             // add encrypted field
             body.put(String.format("%s_enc", s), e);

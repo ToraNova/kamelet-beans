@@ -194,8 +194,8 @@ public class AWSKMSHashcryptor {
 
         PaddedBufferedBlockCipher cip = initCipher(true, nonce);
         byte[] buf = new byte[cip.getOutputSize(plaintext.length) + mNonceLen];
-        cip.processBytes(plaintext, 0, plaintext.length, null, 0);
-        cip.doFinal(buf, mNonceLen);
+        int plen = cip.processBytes(plaintext, 0, plaintext.length, buf, mNonceLen);
+        cip.doFinal(buf, mNonceLen + plen);
         System.arraycopy(nonce, 0, buf, 0, mNonceLen);
 
         mRotationCount += 1; // in and out

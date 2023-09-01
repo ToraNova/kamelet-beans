@@ -43,7 +43,8 @@ public final class HashCryptFieldTest {
 
     private final String baseJson = "{" +
                 "\"name\":\"Sum Ting Wong\"," +
-                "\"nric\":\"1234567891 \"" +
+                "\"nric\":\"1234567891 \"," +
+                "\"long_code\":\"abascaakwjbawkdjabwkdjabwkdjbawkdjbawkjdbawkdjabwdkajwdbkawjbdakwjdbakwjdbawkjdbawkjdbawkdjabwkdajwbd___________awkdjabwddddddddddddddddddddddddddddawdawd12301923102931029dj1092dj1029jd\"" +
             "}";
 
     @Before
@@ -57,7 +58,7 @@ public final class HashCryptFieldTest {
 
         exchange.getMessage().setBody(mapper.readTree(baseJson));
 
-        processor = new HashCryptField("name, nric", "59d9d135-21ee-48d0-9322-d7243983f246", "SHA-256", "salt123", 5);
+        processor = new HashCryptField("name, nric, long_code, donexist", "59d9d135-21ee-48d0-9322-d7243983f246", "SHA-256", "salt123", 5);
         processor.process(exchange);
 
         System.out.println(exchange.getMessage().getBody(String.class));
@@ -70,6 +71,27 @@ public final class HashCryptFieldTest {
         assertEquals("1234567891", recover);
         recover = processor.testDecryptUTF8(((ObjectNode) res).get("name_enc").textValue());
         assertEquals("Sum Ting Wong", recover);
+    }
+
+    @Test
+    public void massEncryption() throws Exception {
+        Exchange exchange;
+        String recover;
+        JsonNode res;
+
+        processor = new HashCryptField("name, nric, long_code, abc", "59d9d135-21ee-48d0-9322-d7243983f246", "SHA-256", "salt123", 10000);
+        for (int i = 0; i < 1000; i++) {
+            exchange = new DefaultExchange(camelContext);
+            exchange.getMessage().setBody(mapper.readTree(baseJson));
+            processor.process(exchange);
+            res = exchange.getMessage().getBody(JsonNode.class);
+            assertEquals("405d29f0dcea8f1c01e45c8cb5d431ef8308697b115f9a1d061244c27b5fdc1a", ((ObjectNode) res).get("nric").textValue());
+            assertEquals("24a5827a551ee3ef32daaa6cb806209204d552fed00f5ee27ea40110ee272a1b",((ObjectNode) res).get("name").textValue());
+            recover = processor.testDecryptUTF8(((ObjectNode) res).get("nric_enc").textValue());
+            assertEquals("1234567891", recover);
+            recover = processor.testDecryptUTF8(((ObjectNode) res).get("name_enc").textValue());
+            assertEquals("Sum Ting Wong", recover);
+        }
     }
 
     @Test
