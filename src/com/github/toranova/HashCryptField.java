@@ -16,6 +16,7 @@
  */
 package com.github.toranova;
 
+import java.util.Base64;
 import java.util.Map;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -83,7 +84,15 @@ public class HashCryptField implements Processor {
                     body.put(s, "");
                     continue;
                 }
-                String e = m.doEncryptUTF8(_v);
+
+                byte[] vbuf = _v.getBytes("UTF-8");
+                if (vbuf == null || vbuf.length == 0) {
+                    // abort, put empty
+                    body.put(String.format("%s_enc", s), "");
+                    body.put(s, "");
+                    continue;
+                }
+                String e = m.doEncrypt(vbuf);
 
                 // add encrypted field
                 body.put(String.format("%s_enc", s), e);
