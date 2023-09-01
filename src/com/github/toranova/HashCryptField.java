@@ -96,7 +96,16 @@ public class HashCryptField implements Processor {
                 continue;
             }
 
-            String e = m.doEncryptUTF8(v);
+            byte[] vbuf = v.getBytes("UTF-8");
+
+            if (vbuf == null) {
+                // do nothing for empty fields
+                body.put(String.format("%s_enc", s), "");
+                body.put(s, "");
+                continue;
+            }
+
+            String e = m.doEncrypt(vbuf);
 
             // add encrypted field
             body.put(String.format("%s_enc", s), e);
