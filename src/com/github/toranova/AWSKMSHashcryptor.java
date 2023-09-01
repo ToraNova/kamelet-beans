@@ -4,6 +4,11 @@ import java.util.Base64;
 import java.util.Arrays;
 import java.security.SecureRandom;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.http.apache.ProxyConfiguration;
 
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.kms.KmsClient;
@@ -31,6 +36,7 @@ import org.bouncycastle.crypto.params.ParametersWithIV;
 
 public class AWSKMSHashcryptor {
 
+    private String mProxy;
     private String mAwsAccessKey;
     private String mAwsSecretKey;
     private byte[] mHashSalt;
@@ -41,6 +47,7 @@ public class AWSKMSHashcryptor {
     private static int mNonceLen = 16;
     private int mRotationCount = 0;
     private int mRotationPeriod = 1000000;
+
 
     public AWSKMSHashcryptor(byte[] hardCodedKey) throws NoSuchAlgorithmException {
         // FOR DEBUGGING ONLY, DO NOT USE!
@@ -62,6 +69,7 @@ public class AWSKMSHashcryptor {
         mKeyId = kmsKeyId;
         mAwsSecretKey = null;
         mAwsAccessKey = null;
+        mProxy = null;
 
         initKeys();
         initHashDigest(hashAlgo, hashSalt);
@@ -79,13 +87,32 @@ public class AWSKMSHashcryptor {
         mKeyId = kmsKeyId;
         mAwsAccessKey = awsKeyId;
         mAwsSecretKey = awsKeySecret;
+        mProxy = null;
+
+        initKeys();
+        initHashDigest(hashAlgo, hashSalt);
+    }
+
+    public AWSKMSHashcryptor(
+            String awsKeyId,
+            String awsKeySecret,
+            String kmsKeyId,
+            String hashAlgo,
+            String hashSalt,
+            int rotationPeriod,
+            String proxy
+    ) throws NoSuchAlgorithmException {
+        mRotationPeriod = rotationPeriod;
+        mKeyId = kmsKeyId;
+        mAwsAccessKey = awsKeyId;
+        mAwsSecretKey = awsKeySecret;
+        mProxy = proxy;
 
         initKeys();
         initHashDigest(hashAlgo, hashSalt);
     }
 
     private void initKeys() throws NoSuchAlgorithmException {
-
         KmsClient client;
 
         if (mAwsAccessKey != null && mAwsSecretKey != null) {
@@ -93,11 +120,27 @@ public class AWSKMSHashcryptor {
                     mAwsAccessKey, mAwsSecretKey
             );
 
-            // Initialize the KMS client
-            client = KmsClient.builder()
-                .credentialsProvider(StaticCredentialsProvider.create(creds))
-                .region(Region.AP_SOUTHEAST_1)
-                .build();
+            if (mProxy != null) {
+                SdkHttpClient httpClient = ApacheHttpClient.builder()
+                    .proxyConfiguration(ProxyConfiguration.builder()
+                        .endpoint(URI.create(mProxy))
+                        .build())
+                    .build();
+
+                // Initialize the KMS client
+                client = KmsClient.builder()
+                    .httpClient(httpClient)
+                    .credentialsProvider(StaticCredentialsProvider.create(creds))
+                    .region(Region.AP_SOUTHEAST_1)
+                    .build();
+
+            } else {
+                // Initialize the KMS client
+                client = KmsClient.builder()
+                    .credentialsProvider(StaticCredentialsProvider.create(creds))
+                    .region(Region.AP_SOUTHEAST_1)
+                    .build();
+            }
         } else {
             client = KmsClient.builder()
                 .region(Region.AP_SOUTHEAST_1)

@@ -34,6 +34,12 @@ public class HashCryptField implements Processor {
     public HashCryptField(){
     }
 
+    public HashCryptField(String fields, String accessKey, String secretKey, String keyId, String hashAlgo, String hashSalt, int rotationPeriod, String proxy) throws Exception {
+        //System.out.printf("FIELDS: %s\n", fields);
+        mFields = fields.split(" *, *");
+        m = new AWSKMSHashcryptor(accessKey, secretKey, keyId, hashAlgo, hashSalt, rotationPeriod, proxy);
+    }
+
     public HashCryptField(String fields, String accessKey, String secretKey, String keyId, String hashAlgo, String hashSalt, int rotationPeriod) throws Exception {
         //System.out.printf("FIELDS: %s\n", fields);
         mFields = fields.split(" *, *");
