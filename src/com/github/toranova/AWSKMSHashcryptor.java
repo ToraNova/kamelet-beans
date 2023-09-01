@@ -36,11 +36,11 @@ import org.bouncycastle.crypto.params.ParametersWithIV;
 
 public class AWSKMSHashcryptor {
 
+    private String mHashAlgo;
     private String mProxy;
     private String mAwsAccessKey;
     private String mAwsSecretKey;
     private byte[] mHashSalt;
-    private MessageDigest mHashAlgo;
     private String mKeyId;
     private KeyParameter mKeyParam;
     private String mKeyCtB64;
@@ -220,7 +220,7 @@ public class AWSKMSHashcryptor {
 
     public void initHashDigest(String algo, String salt) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         if (algo.equals("SHA-256") || algo.equals("SHA-512")) {
-            mHashAlgo = MessageDigest.getInstance(algo);
+            mHashAlgo = algo;
             mHashSalt = salt.getBytes("UTF-8");
         } else if (algo.equals("dropField") || algo.equals("drop")) {
             mHashAlgo = null;
@@ -255,17 +255,18 @@ public class AWSKMSHashcryptor {
         return buffer;
     }
 
-    public String doHashUTF8(String inp) throws UnsupportedEncodingException {
+    public String doHashUTF8(String inp) throws UnsupportedEncodingException, NoSuchAlgorithmException {
         return doHash(inp.getBytes("UTF-8"));
     }
 
-    public String doHash(byte[] buf) {
+    public String doHash(byte[] buf) throws NoSuchAlgorithmException {
         if (mHashAlgo != null && mHashSalt != null) {
-            // reset the hash buffer
-            mHashAlgo.reset();
+            // we must create one new instance
+            // this is because this is not thread safe
+            MessageDigest hip = MessageDigest.getInstance(mHashAlgo);
             // prepend hashing salt
-            mHashAlgo.update(mHashSalt);
-            return bytesToHex(mHashAlgo.digest(buf));
+            hip.update(mHashSalt);
+            return bytesToHex(hip.digest(buf));
         }
 
         return null;
